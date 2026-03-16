@@ -1,34 +1,11 @@
-import cv2
-from ultralytics import YOLO
+"A cinematic, high-tension video sequence divided into four split-screens showing an advanced wildlife-train collision avoidance system in a dense, dark jungle at night."
 
-# 1. YOLOv8 ಮಾಡೆಲ್ ಲೋಡ್ ಮಾಡಿ (ಸಣ್ಣದಾದ ಮತ್ತು ವೇಗವಾದ 'nano' ಮಾಡೆಲ್)
-model = YOLO('yolov8n.pt')
+"Screen 1 (Trackside - Reality): Shows a rugged, solar-powered installation next to a remote railway track in thick forest. A large wild elephant emerges from the trees onto the track in near-total darkness."
 
-# 2. ವೆಬ್‌ಕ್ಯಾಮ್ ಆರಂಭಿಸಿ (0 ಎಂದರೆ ಡಿಫಾಲ್ಟ್ ಕ್ಯಾಮೆರಾ)
-cap = cv2.VideoCapture(0)
+"Screen 2 (Thermal View & AI Detection): The scene shifts to the output of a FLIR thermal camera. The elephant appears as a bright, glowing white/orange heat signature against the cool, dark blue forest. An AI bounding box snaps around the elephant with red text flashing: 'TARGET ACQUIRED: ELEPHANT' and a progress bar showing 'IMAGE TRANSMITTING...'"
 
-print("ಕ್ಯಾಮೆರಾ ಆರಂಭವಾಗುತ್ತಿದೆ... ಮುಚ್ಚಲು 'q' ಒತ್ತಿರಿ.")
+"Screen 3 (Wireless Transmission Path): An aerial shot showing the jungle canopy with a conceptual, glowing blue data beam shooting from the trackside installation, hopping across invisible network nodes along the track towards a moving train in the distance. Text overlay: 'PRIVATE V2I NETWORK Active'."
 
-while cap.isOpened():
-    # ಕ್ಯಾಮೆರಾದಿಂದ ಫ್ರೇಮ್ ಓದಿ
-    success, frame = cap.read()
+"Screen 4 (Train Cockpit - Output): Inside the dimly lit cabin of a high-speed locomotive. The train driver is looking ahead. Suddenly, a rugged Advantech monitor on the dashboard flashes red. An audible alarm sounds. The thermal photo of the elephant from Screen 2 pops up instantly on the screen with the message: 'DANGER: OBSTRUCTION AHEAD - 3.5 KM' and 'AUTOMATIC BRAKING ACTIVATED'. The driver reaches for the brake lever."
 
-    if success:
-        # 3. ಆಬ್ಜೆಕ್ಟ್ ಡಿಟೆಕ್ಷನ್ ನಡೆಸಿ
-        results = model(frame)
-
-        # 4. ರಿಸಲ್ಟ್ ಅನ್ನು ಫ್ರೇಮ್ ಮೇಲೆ ಬಿಡಿಸಿ (Annotate)
-        annotated_frame = results[0].plot()
-
-        # ಪ್ರದರ್ಶಿಸಿ
-        cv2.imshow("YOLOv8 Real-Time Detection", annotated_frame)
-
-        # 'q' ಒತ್ತಿದರೆ ಲೂಪ್ ನಿಲ್ಲಿಸಿ
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    else:
-        break
-
-# ಎಲ್ಲವನ್ನೂ ಕ್ಲೋಸ್ ಮಾಡಿ
-cap.release()
-cv2.destroyAllWindows()
+"Final Shot: Slow-motion cinematic shot of the train's massive steel wheels sparking as the emergency brakes engage, slowing the train down safely in the dark forest. The elephant is seen walking away into the woods. Fade to black with text: 'AI SAVING WILDLIFE'."
