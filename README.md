@@ -11,4 +11,4 @@ This is a simple Python project uploaded to GitHub.
 pip install -r requirements.txt
 
 ## Run
-python src/main.py
+python src/main.py.
