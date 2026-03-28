@@ -15,7 +15,7 @@
     --accent2: #0080ff;
     --danger: #ff3b5c;
     --warn: #ffb830;
-    --text: #d4e4f7;
+    --text: #d4e4f7; 
     --muted: #5a7a9a;
     --code-bg: #050a12;
     --mono: 'JetBrains Mono', monospace;
