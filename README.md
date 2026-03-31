@@ -1,1047 +1,320 @@
-<!DOCTYPE html>
-<html lang="en">
-<head> 
-<meta charset="UTF-8">..
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Student ID Detection System</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style> 
-  :root {
-    --bg: #070b14;
-    --surface: #0d1525;
-    --surface2: #111c32;
-    --border: #1e2d4a;
-    --accent: #00e5a0;
-    --accent2: #0080ff;
-    --danger: #ff3b5c;
-    --warn: #ffb830;
-    --text: #d4e4f7; 
-    --muted: #5a7a9a;
-    --code-bg: #050a12;
-    --mono: 'JetBrains Mono', monospace;
-    --display: 'Syne', sans-serif;
-  }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 14px;
-    line-height: 1.7;
-    overflow-x: hidden;
-  }
-
-  /* ── NOISE TEXTURE OVERLAY ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 999;
-    opacity: .5;
-  }
-
-  /* ── GRID BACKGROUND ── */
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,229,160,.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,229,160,.025) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .page-wrap {
-    position: relative;
-    z-index: 1;
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 24px 80px;
-  }
-
-  /* ── HERO ── */
-  .hero {
-    padding: 70px 0 50px;
-    border-bottom: 1px solid var(--border);
-    position: relative;
-  }
-
-  .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(0,229,160,.08);
-    border: 1px solid rgba(0,229,160,.25);
-    color: var(--accent);
-    padding: 4px 14px;
-    border-radius: 20px;
-    font-size: 11px;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    margin-bottom: 22px;
-  }
-
-  .hero-badge .dot {
-    width: 6px; height: 6px;
-    background: var(--accent);
-    border-radius: 50%;
-    animation: pulse 1.8s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%,100% { opacity: 1; transform: scale(1); }
-    50% { opacity: .4; transform: scale(1.4); }
-  }
-
-  h1 {
-    font-family: var(--display);
-    font-size: clamp(2rem, 5vw, 3.4rem);
-    font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -.02em;
-    margin-bottom: 18px;
-  }
-
-  h1 .hl { color: var(--accent); }
-  h1 .hl2 { color: var(--accent2); }
-
-  .hero-sub {
-    color: var(--muted);
-    max-width: 600px;
-    font-size: 13px;
-    margin-bottom: 36px;
-  }
-
-  .tag-row { display: flex; flex-wrap: wrap; gap: 10px; }
-
-  .tag {
-    padding: 5px 14px;
-    border-radius: 4px;
-    font-size: 11px;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    border: 1px solid;
-  }
-  .tag-green { color: var(--accent); border-color: rgba(0,229,160,.3); background: rgba(0,229,160,.06); }
-  .tag-blue  { color: var(--accent2); border-color: rgba(0,128,255,.3); background: rgba(0,128,255,.06); }
-  .tag-red   { color: var(--danger); border-color: rgba(255,59,92,.3); background: rgba(255,59,92,.06); }
-  .tag-gold  { color: var(--warn); border-color: rgba(255,184,48,.3); background: rgba(255,184,48,.06); }
-
-  /* ── SECTION ── */
-  .section { padding: 56px 0 0; }
-
-  h2 {
-    font-family: var(--display);
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: 28px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  h2 .num {
-    width: 28px; height: 28px;
-    background: var(--accent);
-    color: var(--bg);
-    border-radius: 6px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px;
-    font-weight: 700;
-    flex-shrink: 0;
-  }
-
-  h3 {
-    font-family: var(--display);
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--accent);
-    margin: 28px 0 12px;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-  }
-
-  /* ── ARCH CARDS ── */
-  .arch-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 16px;
-    margin-top: 8px;
-  }
-
-  .arch-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color .25s, transform .25s;
-  }
-
-  .arch-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-3px);
-  }
-
-  .arch-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--accent), var(--accent2));
-  }
-
-  .arch-icon {
-    font-size: 2rem;
-    margin-bottom: 14px;
-    display: block;
-  }
-
-  .arch-card h4 {
-    font-family: var(--display);
-    font-size: .95rem;
-    font-weight: 700;
-    margin-bottom: 8px;
-  }
-
-  .arch-card p { color: var(--muted); font-size: 12.5px; }
-
-  /* ── CODE BLOCKS ── */
-  .code-block {
-    background: var(--code-bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    margin: 16px 0;
-    position: relative;
-  }
-
-  .code-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 18px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .code-lang {
-    font-size: 11px;
-    color: var(--accent);
-    letter-spacing: .1em;
-    text-transform: uppercase;
-  }
-
-  .copy-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 11px;
-    cursor: pointer;
-    font-family: var(--mono);
-    transition: all .2s;
-  }
-  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .copy-btn.copied { border-color: var(--accent); color: var(--accent); }
-
-  pre {
-    padding: 20px 20px;
-    overflow-x: auto;
-    font-size: 12.5px;
-    line-height: 1.8;
-    color: #b0cce8;
-  }
-
-  .kw { color: #7eb8f7; }
-  .fn { color: #f7c870; }
-  .str { color: #80d7a0; }
-  .cm { color: #3f5a74; font-style: italic; }
-  .num { color: #f09090; }
-  .var { color: #c8b0f0; }
-
-  /* ── PIPELINE ── */
-  .pipeline {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0;
-    margin: 24px 0;
-  }
-
-  .pipe-step {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 20px;
-    flex: 1;
-    min-width: 130px;
-    text-align: center;
-    position: relative;
-  }
-
-  .pipe-step .step-num {
-    font-size: 10px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .1em;
-  }
-
-  .pipe-step .step-name {
-    font-family: var(--display);
-    font-weight: 700;
-    font-size: 13px;
-    color: var(--accent);
-    margin-top: 4px;
-  }
-
-  .pipe-arrow {
-    color: var(--border);
-    font-size: 1.4rem;
-    padding: 0 6px;
-    flex-shrink: 0;
-  }
-
-  /* ── ALERT DEMO ── */
-  .demo-panel {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .demo-screen {
-    background: #000;
-    height: 220px;
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-  }
-
-  .demo-screen .scan-line {
-    position: absolute;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    animation: scan 2.5s linear infinite;
-    opacity: .5;
-  }
-
-  @keyframes scan {
-    0% { top: 0; }
-    100% { top: 100%; }
-  }
-
-  .demo-screen canvas { display: block; }
-
-  .demo-controls {
-    display: flex;
-    gap: 10px;
-    padding: 16px;
-    background: var(--surface2);
-    border-top: 1px solid var(--border);
-  }
-
-  .btn {
-    padding: 8px 20px;
-    border-radius: 6px;
-    border: 1px solid;
-    cursor: pointer;
-    font-family: var(--mono);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: .05em;
-    transition: all .2s;
-  }
-
-  .btn-green {
-    background: rgba(0,229,160,.1);
-    border-color: rgba(0,229,160,.4);
-    color: var(--accent);
-  }
-  .btn-green:hover { background: rgba(0,229,160,.2); }
-
-  .btn-red {
-    background: rgba(255,59,92,.1);
-    border-color: rgba(255,59,92,.4);
-    color: var(--danger);
-  }
-  .btn-red:hover { background: rgba(255,59,92,.2); }
-
-  .demo-status {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    margin-right: 8px;
-    background: var(--muted);
-  }
-  .status-dot.ok { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-  .status-dot.alert { background: var(--danger); animation: pulse 1s infinite; }
-
-  /* ── METRICS ── */
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 14px;
-    margin: 8px 0;
-  }
-
-  .metric-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px 18px;
-    text-align: center;
-  }
-
-  .metric-val {
-    font-family: var(--display);
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--accent);
-    line-height: 1;
-  }
-
-  .metric-label {
-    font-size: 11px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    margin-top: 6px;
-  }
-
-  /* ── TABLE ── */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 16px 0;
-    font-size: 12.5px;
-  }
-
-  th {
-    text-align: left;
-    padding: 10px 16px;
-    background: var(--surface2);
-    color: var(--accent);
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    border-bottom: 1px solid var(--border);
-  }
-
-  td {
-    padding: 10px 16px;
-    border-bottom: 1px solid rgba(30,45,74,.5);
-    color: var(--text);
-  }
-
-  tr:hover td { background: rgba(0,229,160,.025); }
-
-  .td-green { color: var(--accent); }
-  .td-blue  { color: var(--accent2); }
-  .td-red   { color: var(--danger); }
-
-  /* ── STEPS LIST ── */
-  .steps-list { list-style: none; }
-
-  .steps-list li {
-    display: flex;
-    gap: 16px;
-    padding: 16px 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .steps-list li:last-child { border-bottom: none; }
-
-  .step-circle {
-    width: 32px; height: 32px;
-    background: rgba(0,229,160,.1);
-    border: 1px solid rgba(0,229,160,.3);
-    color: var(--accent);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px;
-    font-weight: 700;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  .step-body strong {
-    font-family: var(--display);
-    font-size: .9rem;
-    color: var(--text);
-    display: block;
-    margin-bottom: 4px;
-  }
-
-  .step-body p { color: var(--muted); font-size: 12px; }
-
-  /* ── FOOTER ── */
-  .footer {
-    margin-top: 80px;
-    padding: 28px 0;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 14px;
-    color: var(--muted);
-    font-size: 11px;
-  }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 600px) {
-    .pipeline { flex-direction: column; }
-    .pipe-arrow { transform: rotate(90deg); }
-  }
-</style>
-</head>
-<body>
-<div class="page-wrap">
-
-  <!-- HERO -->
-  <div class="hero">
-    <div class="hero-badge">
-      <span class="dot"></span>
-      Real-time AI System &nbsp;·&nbsp; v2.0
-    </div>
-    <h1>
-      Student <span class="hl">ID Card</span><br>
-      <span class="hl2">Detection</span> System
-    </h1>
-    <p class="hero-sub">
-      Real-time detection using OpenCV + CNN/YOLO.
-      Green box when ID found · Red alert when missing · Sound alarm · Confidence score overlay.
-      Optimised for CPU-only laptops and Raspberry Pi.
-    </p>
-    <div class="tag-row">
-      <span class="tag tag-green">Python 3.x</span>
-      <span class="tag tag-blue">OpenCV 4.8+</span>
-      <span class="tag tag-blue">MobileNetV2 / YOLOv4-tiny</span>
-      <span class="tag tag-gold">Raspberry Pi Ready</span>
-      <span class="tag tag-red">Real-time Alert</span>
-    </div>
-  </div>
-
-  <!-- METRICS -->
-  <div class="section">
-    <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-val">20+</div>
-        <div class="metric-label">FPS on CPU</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-val">94%</div>
-        <div class="metric-label">Detection Accuracy</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-val">55ms</div>
-        <div class="metric-label">Inference Latency</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-val">&lt;50MB</div>
-        <div class="metric-label">Model Size</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-val">3</div>
-        <div class="metric-label">Detection Methods</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- HOW IT WORKS -->
-  <div class="section">
-    <h2><span class="num">1</span> How It Works — Detection Pipeline</h2>
-
-    <div class="pipeline">
-      <div class="pipe-step">
-        <div class="step-num">Step 1</div>
-        <div class="step-name">Webcam Frame</div>
-      </div>
-      <span class="pipe-arrow">→</span>
-      <div class="pipe-step">
-        <div class="step-num">Step 2</div>
-        <div class="step-name">Resize + Blob</div>
-      </div>
-      <span class="pipe-arrow">→</span>
-      <div class="pipe-step">
-        <div class="step-num">Step 3</div>
-        <div class="step-name">DNN Inference</div>
-      </div>
-      <span class="pipe-arrow">→</span>
-      <div class="pipe-step">
-        <div class="step-num">Step 4</div>
-        <div class="step-name">Rect Heuristic</div>
-      </div>
-      <span class="pipe-arrow">→</span>
-      <div class="pipe-step">
-        <div class="step-num">Step 5</div>
-        <div class="step-name">NMS + Fuse</div>
-      </div>
-      <span class="pipe-arrow">→</span>
-      <div class="pipe-step">
-        <div class="step-num">Step 6</div>
-        <div class="step-name">Draw HUD + Alert</div>
-      </div>
-    </div>
-
-    <h3>Three-layer detection strategy</h3>
-    <div class="arch-grid">
-      <div class="arch-card">
-        <span class="arch-icon">🧠</span>
-        <h4>DNN Object Detector</h4>
-        <p>MobileNet SSD or YOLOv4-tiny runs on every frame. Detects persons and rectangles at high speed. Falls back gracefully if model files are missing.</p>
-      </div>
-      <div class="arch-card">
-        <span class="arch-icon">🔲</span>
-        <h4>Rectangle Heuristic</h4>
-        <p>Edge detection (Canny) + contour analysis finds quadrilaterals with ID-card aspect ratio (0.5 – 1.0). Works with zero model files — perfect for offline / Pi.</p>
-      </div>
-      <div class="arch-card">
-        <span class="arch-icon">⚡</span>
-        <h4>Fusion + NMS</h4>
-        <p>Both signals are merged, duplicate boxes removed via Non-Maximum Suppression. Final confidence score shown live on screen.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- LIVE DEMO -->
-  <div class="section">
-    <h2><span class="num">2</span> Live Demo Simulation</h2>
-    <div class="demo-panel">
-      <div class="demo-screen">
-        <div class="scan-line"></div>
-        <canvas id="demoCanvas" width="700" height="220"></canvas>
-      </div>
-      <div class="demo-controls">
-        <button class="btn btn-green" onclick="simDetected()">✔ Simulate ID Detected</button>
-        <button class="btn btn-red" onclick="simMissing()">⚠ Simulate ID Missing</button>
-        <div class="demo-status">
-          <span class="status-dot" id="statusDot"></span>
-          <span id="statusText">Idle</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- INSTALL -->
-  <div class="section">
-    <h2><span class="num">3</span> Installation</h2>
-
-    <h3>1. Clone / Download files</h3>
-    <div class="code-block">
-      <div class="code-header">
-        <span class="code-lang">bash</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre><span class="cm"># Create project folder</span>
-mkdir student_id_detector && cd student_id_detector
-
-<span class="cm"># Place id_card_detector.py and requirements.txt here</span>
-pip install -r requirements.txt</pre>
-    </div>
-
-    <h3>2. Download model weights (MobileNet SSD)</h3>
-    <div class="code-block">
-      <div class="code-header">
-        <span class="code-lang">bash</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre>mkdir models && cd models
-
-<span class="cm"># MobileNet SSD (5 MB – works on Pi)</span>
-wget https://raw.githubusercontent.com/chuanqi305/MobileNet-SSD/master/MobileNetSSD_deploy.prototxt
-wget https://drive.google.com/uc?id=0B3gersZ2cHIxRm5PMWRoTkdHdHc -O MobileNetSSD_deploy.caffemodel
-
-<span class="cm"># OR: YOLOv4-tiny (23 MB – more accurate)</span>
-wget https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v4_pre/yolov4-tiny.weights
-wget https://raw.githubusercontent.com/AlexeyAB/darknet/master/cfg/yolov4-tiny.cfg</pre>
-    </div>
-
-    <h3>3. Run the detector</h3>
-    <div class="code-block">
-      <div class="code-header">
-        <span class="code-lang">bash</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre><span class="cm"># Basic run (auto-detects best model)</span>
-python id_card_detector.py
-
-<span class="cm"># Use YOLOv4-tiny</span>
-python id_card_detector.py --yolo
-
-<span class="cm"># Different camera (e.g. external USB cam)</span>
-python id_card_detector.py --camera 1
-
-<span class="cm"># Save output video</span>
-python id_card_detector.py --save
-
-<span class="cm"># Keyboard shortcuts while running</span>
-<span class="cm">#   Q  → quit</span>
-<span class="cm">#   S  → save snapshot</span></pre>
-    </div>
-  </div>
-
-  <!-- TRAINING -->
-  <div class="section">
-    <h2><span class="num">4</span> Training Your Own Model</h2>
-
-    <h3>Dataset preparation</h3>
-    <div class="code-block">
-      <div class="code-header">
-        <span class="code-lang">bash</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre><span class="cm"># Install LabelImg for annotation</span>
-pip install labelImg
-
-<span class="cm"># Run the labeller</span>
-labelImg
-
-<span class="cm"># Inside LabelImg:
-#  1. Open the folder of photos
-#  2. Draw bounding boxes around ID cards
-#  3. Label each box "id_card"
-#  4. Save as Pascal VOC format (XML)</span>
-
-<span class="cm"># Folder structure needed:</span>
-dataset/
-├── images/
-│   ├── train/   <span class="cm">← 80% of photos</span>
-│   └── val/     <span class="cm">← 20% of photos</span>
-└── annotations/
-    ├── train/   <span class="cm">← XML files (same names)</span>
-    └── val/</pre>
-    </div>
-
-    <h3>Train the model</h3>
-    <div class="code-block">
-      <div class="code-header">
-        <span class="code-lang">bash</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre><span class="cm"># Install TensorFlow (CPU-only for low hardware)</span>
-pip install tensorflow
-
-<span class="cm"># Run training</span>
-python train_model.py --dataset dataset --epochs 30
-
-<span class="cm"># Output files created:</span>
-<span class="cm">#   trained_model/best_model.h5          ← full Keras model</span>
-<span class="cm">#   trained_model/id_card_model.tflite   ← Pi-optimised</span>
-<span class="cm">#   trained_model/training_curves.png    ← accuracy graph</span></pre>
-    </div>
-
-    <ul class="steps-list" style="margin-top:16px">
-      <li>
-        <span class="step-circle">1</span>
-        <div class="step-body">
-          <strong>Collect 300–500 photos</strong>
-          <p>Photos of students wearing / not wearing their ID cards. Include different angles, lighting conditions, and card positions (chest, pocket, lanyard).</p>
-        </div>
-      </li>
-      <li>
-        <span class="step-circle">2</span>
-        <div class="step-body">
-          <strong>Label with LabelImg or Roboflow</strong>
-          <p>Draw a tight box around each visible ID card. Save in Pascal VOC (XML) format. Takes ~2–3 hours for 400 images.</p>
-        </div>
-      </li>
-      <li>
-        <span class="step-circle">3</span>
-        <div class="step-body">
-          <strong>Run train_model.py</strong>
-          <p>MobileNetV2 starts with ImageNet weights (transfer learning). Training takes ~30 min on a modern CPU laptop, ~10 min with a GPU.</p>
-        </div>
-      </li>
-      <li>
-        <span class="step-circle">4</span>
-        <div class="step-body">
-          <strong>Export TFLite for Raspberry Pi</strong>
-          <p>The script auto-converts to TFLite with INT8 quantisation — shrinks the model and speeds up inference on Pi by 2–3×.</p>
-        </div>
-      </li>
-      <li>
-        <span class="step-circle">5</span>
-        <div class="step-body">
-          <strong>Integrate with detector</strong>
-          <p>Point <code>MODEL_PATH</code> in the config to your new <code>.h5</code> or <code>.tflite</code> file and re-run.</p>
-        </div>
-      </li>
-    </ul>
-  </div>
-
-  <!-- MODEL COMPARISON -->
-  <div class="section">
-    <h2><span class="num">5</span> Model Comparison</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Model</th>
-          <th>Speed (CPU)</th>
-          <th>Accuracy</th>
-          <th>Size</th>
-          <th>Pi 4 Friendly</th>
-          <th>Best For</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><strong>Rectangle Heuristic</strong></td>
-          <td class="td-green">30+ FPS</td>
-          <td class="td-red">60–70%</td>
-          <td class="td-green">0 MB</td>
-          <td class="td-green">✔ Yes</td>
-          <td>Offline / zero-install</td>
-        </tr>
-        <tr>
-          <td><strong>MobileNet SSD</strong></td>
-          <td class="td-green">20–25 FPS</td>
-          <td class="td-blue">85–90%</td>
-          <td class="td-green">5 MB</td>
-          <td class="td-green">✔ Yes</td>
-          <td>Balanced default</td>
-        </tr>
-        <tr>
-          <td><strong>YOLOv4-tiny</strong></td>
-          <td class="td-blue">15–20 FPS</td>
-          <td class="td-green">92–96%</td>
-          <td class="td-blue">23 MB</td>
-          <td class="td-blue">◑ Marginal</td>
-          <td>Best accuracy</td>
-        </tr>
-        <tr>
-          <td><strong>MobileNetV2 (fine-tuned)</strong></td>
-          <td class="td-green">22–28 FPS</td>
-          <td class="td-green">94–97%</td>
-          <td class="td-green">14 MB</td>
-          <td class="td-green">✔ TFLite</td>
-          <td>Custom dataset</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- CONFIG -->
-  <div class="section">
-    <h2><span class="num">6</span> Key Configuration Options</h2>
-    <div class="code-block">
-      <div class="code-header">
-        <span class="code-lang">python</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre>CONFIG = {
-    <span class="cm"># Lower = more detections (may cause false positives)</span>
-    <span class="str">"CONFIDENCE_THRESHOLD"</span>: <span class="num">0.55</span>,
-
-    <span class="cm"># Seconds between sound beeps (avoids alarm fatigue)</span>
-    <span class="str">"ALERT_COOLDOWN_SEC"</span>: <span class="num">3</span>,
-
-    <span class="cm"># How many frames without ID before red alert fires</span>
-    <span class="str">"MISSING_FRAMES_ALERT"</span>: <span class="num">15</span>,   <span class="cm"># ≈ 0.5 s at 30 fps</span>
-
-    <span class="cm"># Reduce resolution on slow hardware</span>
-    <span class="str">"FRAME_WIDTH"</span>: <span class="num">640</span>,
-    <span class="str">"FRAME_HEIGHT"</span>: <span class="num">480</span>,
-}</pre>
-    </div>
-  </div>
-
-  <!-- RASPBERRY PI -->
-  <div class="section">
-    <h2><span class="num">7</span> Raspberry Pi Setup</h2>
-    <div class="code-block">
-      <div class="code-header">
-        <span class="code-lang">bash</span>
-        <button class="copy-btn" onclick="copyCode(this)">Copy</button>
-      </div>
-      <pre><span class="cm"># On Raspberry Pi OS (Bullseye or later)</span>
-sudo apt update
-sudo apt install python3-opencv python3-pip -y
-
-pip3 install numpy beepy imutils
-
-<span class="cm"># Use lighter settings on Pi</span>
-python3 id_card_detector.py  <span class="cm"># uses rect heuristic by default</span>
-
-<span class="cm"># For TFLite inference on Pi:</span>
-pip3 install tflite-runtime
-<span class="cm"># → point MODEL_PATH to id_card_model.tflite</span></pre>
-    </div>
-  </div>
-
-  <div class="footer">
-    <span>Student ID Detection System &nbsp;·&nbsp; Python + OpenCV + DNN</span>
-    <span>Press <kbd style="background:var(--surface2);border:1px solid var(--border);padding:2px 6px;border-radius:3px">Q</kbd> to quit &nbsp;·&nbsp; <kbd style="background:var(--surface2);border:1px solid var(--border);padding:2px 6px;border-radius:3px">S</kbd> for snapshot</span>
-  </div>
-
-</div><!-- /page-wrap -->
-
-<script>
-// ── Copy button ──────────────────────────────────────────
-function copyCode(btn) {
-  const pre = btn.closest('.code-block').querySelector('pre');
-  navigator.clipboard.writeText(pre.innerText).then(() => {
-    btn.textContent = 'Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
-  });
-}
-
-// ── Canvas demo simulation ───────────────────────────────
-const canvas = document.getElementById('demoCanvas');
-const ctx    = canvas.getContext('2d');
-let   state  = 'idle'; // 'detected' | 'missing' | 'idle'
-let   frame  = 0;
-
-function drawFrame() {
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-
-  // Dark background
-  ctx.fillStyle = '#050a12';
-  ctx.fillRect(0, 0, W, H);
-
-  // Faint grid
-  ctx.strokeStyle = 'rgba(0,229,160,0.04)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  for (let y = 0; y < H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-
-  // ── Silhouette ──
-  ctx.fillStyle = '#1a2a3a';
-  // Body
-  ctx.beginPath();
-  ctx.ellipse(200, 130, 55, 75, 0, 0, Math.PI*2);
-  ctx.fill();
-  // Head
-  ctx.beginPath();
-  ctx.ellipse(200, 42, 30, 35, 0, 0, Math.PI*2);
-  ctx.fill();
-
-  const t = frame / 60;
-
-  if (state === 'detected') {
-    // ── ID Card bounding box (GREEN) ──
-    const bx = 155, by = 88, bw = 88, bh = 56;
-    ctx.strokeStyle = '#00e5a0';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(bx, by, bw, bh);
-
-    // Corner brackets
-    const cs = 12;
-    ctx.lineWidth = 3;
-    [[bx,by,1,1],[bx+bw,by,-1,1],[bx,by+bh,1,-1],[bx+bw,by+bh,-1,-1]].forEach(([x,y,dx,dy])=>{
-      ctx.beginPath(); ctx.moveTo(x+dx*cs, y); ctx.lineTo(x,y); ctx.lineTo(x,y+dy*cs); ctx.stroke();
-    });
-
-    // ID card fill
-    ctx.fillStyle = 'rgba(0,229,160,0.07)';
-    ctx.fillRect(bx+2, by+2, bw-4, bh-4);
-
-    // Card details (fake lines)
-    ctx.fillStyle = 'rgba(0,229,160,0.3)';
-    ctx.fillRect(bx+8, by+10, 28, 20);   // photo placeholder
-    ctx.fillRect(bx+44, by+10, 32, 4);   // name line
-    ctx.fillRect(bx+44, by+18, 24, 4);   // id line
-    ctx.fillRect(bx+44, by+26, 28, 4);   // dept line
-
-    // Confidence badge
-    ctx.fillStyle = '#00e5a0';
-    ctx.fillRect(bx, by-22, 90, 18);
-    ctx.fillStyle = '#050a12';
-    ctx.font = 'bold 11px JetBrains Mono, monospace';
-    ctx.fillText('ID Card  96%', bx+5, by-8);
-
-    // Status bar
-    ctx.fillStyle = 'rgba(0,229,160,0.15)';
-    ctx.fillRect(0, H-30, W, 30);
-    ctx.fillStyle = '#00e5a0';
-    ctx.font = '12px JetBrains Mono, monospace';
-    ctx.fillText('✔  ID CARD DETECTED  (1 found)', 12, H-10);
-
-    // FPS
-    ctx.fillStyle = '#ffb830';
-    ctx.textAlign = 'right';
-    ctx.fillText('FPS: 24.3', W-12, H-10);
-    ctx.textAlign = 'left';
-
-  } else if (state === 'missing') {
-    // Pulsing red border
-    const pulse = (Math.sin(t * 8) + 1) / 2;
-    ctx.strokeStyle = `rgba(255,${Math.floor(59*pulse)},${Math.floor(92*pulse)},${0.4+pulse*0.6})`;
-    ctx.lineWidth = 3 + pulse * 2;
-    ctx.strokeRect(2, 2, W-4, H-4);
-
-    // Alert text
-    ctx.fillStyle = `rgba(255,59,92,${0.6+pulse*0.4})`;
-    ctx.font = 'bold 14px JetBrains Mono, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('⚠  ID CARD NOT DETECTED', W/2, H/2 - 12);
-    ctx.font = '11px JetBrains Mono, monospace';
-    ctx.fillStyle = 'rgba(255,59,92,0.6)';
-    ctx.fillText('ALERT ACTIVE · SOUND ALARM', W/2, H/2 + 10);
-    ctx.textAlign = 'left';
-
-    // Status bar
-    ctx.fillStyle = 'rgba(255,59,92,0.12)';
-    ctx.fillRect(0, H-30, W, 30);
-    ctx.fillStyle = '#ff3b5c';
-    ctx.font = '12px JetBrains Mono, monospace';
-    ctx.fillText('⚠  ID CARD MISSING – ALERT ACTIVE', 12, H-10);
-
-  } else {
-    // Idle scanning text
-    ctx.fillStyle = 'rgba(0,229,160,0.3)';
-    ctx.font = '13px JetBrains Mono, monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText('Click a button below to simulate detection', W/2, H/2);
-    ctx.textAlign = 'left';
-  }
-
-  // Top bar
-  ctx.fillStyle = 'rgba(7,11,20,0.85)';
-  ctx.fillRect(0, 0, W, 36);
-  ctx.fillStyle = '#d4e4f7';
-  ctx.font = '12px JetBrains Mono, monospace';
-  ctx.fillText('Student ID Detection System', 12, 22);
-
-  frame++;
-  requestAnimationFrame(drawFrame);
-}
-
-drawFrame();
-
-function simDetected() {
-  state = 'detected';
-  document.getElementById('statusDot').className = 'status-dot ok';
-  document.getElementById('statusText').textContent = 'ID Detected · Confidence 96%';
-}
-
-function simMissing() {
-  state = 'missing';
-  document.getElementById('statusDot').className = 'status-dot alert';
-  document.getElementById('statusText').textContent = 'ALERT — ID Missing';
-}
-</script>
-</body>
-</html>
+import marimo
+
+__generated_with = "0.13.1-dev1"
+app = marimo.App(width="full", app_title="Gradient Descen")
+
+
+@app.cell(hide_code=True)
+def _():
+    import marimo as mo
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import io
+
+    data_string = """
+    1,230.1,37.8,69.2,22.1
+    2,44.5,39.3,45.1,10.4
+    3,17.2,45.9,69.3,9.3
+    4,151.5,41.3,58.5,18.5
+    5,180.8,10.8,58.4,12.9
+    6,8.7,48.9,75,7.2
+    7,57.5,32.8,23.5,11.8
+    8,120.2,19.6,11.6,13.2
+    9,8.6,2.1,1,4.8
+    10,199.8,2.6,21.2,10.6
+    11,66.1,5.8,24.2,8.6
+    12,214.7,24,4,17.4
+    13,23.8,35.1,65.9,9.2
+    14,97.5,7.6,7.2,9.7
+    15,204.1,32.9,46,19
+    16,195.4,47.7,52.9,22.4
+    17,67.8,36.6,114,12.5
+    18,281.4,39.6,55.8,24.4
+    19,69.2,20.5,18.3,11.3
+    20,147.3,23.9,19.1,14.6
+    21,218.4,27.7,53.4,18
+    22,237.4,5.1,23.5,12.5
+    23,13.2,15.9,49.6,5.6
+    24,228.3,16.9,26.2,15.5
+    25,62.3,12.6,18.3,9.7
+    26,262.9,3.5,19.5,12
+    27,142.9,29.3,12.6,15
+    28,240.1,16.7,22.9,15.9
+    29,248.8,27.1,22.9,18.9
+    30,70.6,16,40.8,10.5
+    31,292.9,28.3,43.2,21.4
+    32,112.9,17.4,38.6,11.9
+    33,97.2,1.5,30,9.6
+    34,265.6,20,0.3,17.4
+    35,95.7,1.4,7.4,9.5
+    36,290.7,4.1,8.5,12.8
+    37,266.9,43.8,5,25.4
+    38,74.7,49.4,45.7,14.7
+    39,43.1,26.7,35.1,10.1
+    40,228,37.7,32,21.5
+    41,202.5,22.3,31.6,16.6
+    42,177,33.4,38.7,17.1
+    43,293.6,27.7,1.8,20.7
+    44,206.9,8.4,26.4,12.9
+    45,25.1,25.7,43.3,8.5
+    46,175.1,22.5,31.5,14.9
+    47,89.7,9.9,35.7,10.6
+    48,239.9,41.5,18.5,23.2
+    49,227.2,15.8,49.9,14.8
+    50,66.9,11.7,36.8,9.7
+    51,199.8,3.1,34.6,11.4
+    52,100.4,9.6,3.6,10.7
+    53,216.4,41.7,39.6,22.6
+    54,182.6,46.2,58.7,21.2
+    55,262.7,28.8,15.9,20.2
+    56,198.9,49.4,60,23.7
+    57,7.3,28.1,41.4,5.5
+    58,136.2,19.2,16.6,13.2
+    59,210.8,49.6,37.7,23.8
+    60,210.7,29.5,9.3,18.4
+    61,53.5,2,21.4,8.1
+    62,261.3,42.7,54.7,24.2
+    63,239.3,15.5,27.3,15.7
+    64,102.7,29.6,8.4,14
+    65,131.1,42.8,28.9,18
+    66,69,9.3,0.9,9.3
+    67,31.5,24.6,2.2,9.5
+    68,139.3,14.5,10.2,13.4
+    69,237.4,27.5,11,18.9
+    70,216.8,43.9,27.2,22.3
+    71,199.1,30.6,38.7,18.3
+    72,109.8,14.3,31.7,12.4
+    73,26.8,33,19.3,8.8
+    74,129.4,5.7,31.3,11
+    75,213.4,24.6,13.1,17
+    76,16.9,43.7,89.4,8.7
+    77,27.5,1.6,20.7,6.9
+    78,120.5,28.5,14.2,14.2
+    79,5.4,29.9,9.4,5.3
+    80,116,7.7,23.1,11
+    81,76.4,26.7,22.3,11.8
+    82,239.8,4.1,36.9,12.3
+    83,75.3,20.3,32.5,11.3
+    84,68.4,44.5,35.6,13.6
+    85,213.5,43,33.8,21.7
+    86,193.2,18.4,65.7,15.2
+    87,76.3,27.5,16,12
+    88,110.7,40.6,63.2,16
+    89,88.3,25.5,73.4,12.9
+    90,109.8,47.8,51.4,16.7
+    91,134.3,4.9,9.3,11.2
+    92,28.6,1.5,33,7.3
+    93,217.7,33.5,59,19.4
+    94,250.9,36.5,72.3,22.2
+    95,107.4,14,10.9,11.5
+    96,163.3,31.6,52.9,16.9
+    97,197.6,3.5,5.9,11.7
+    98,184.9,21,22,15.5
+    99,289.7,42.3,51.2,25.4
+    100,135.2,41.7,45.9,17.2
+    101,222.4,4.3,49.8,11.7
+    102,296.4,36.3,100.9,23.8
+    103,280.2,10.1,21.4,14.8
+    104,187.9,17.2,17.9,14.7
+    105,238.2,34.3,5.3,20.7
+    106,137.9,46.4,59,19.2
+    107,25,11,29.7,7.2
+    108,90.4,0.3,23.2,8.7
+    109,13.1,0.4,25.6,5.3
+    110,255.4,26.9,5.5,19.8
+    111,225.8,8.2,56.5,13.4
+    112,241.7,38,23.2,21.8
+    113,175.7,15.4,2.4,14.1
+    114,209.6,20.6,10.7,15.9
+    115,78.2,46.8,34.5,14.6
+    116,75.1,35,52.7,12.6
+    117,139.2,14.3,25.6,12.2
+    118,76.4,0.8,14.8,9.4
+    119,125.7,36.9,79.2,15.9
+    120,19.4,16,22.3,6.6
+    121,141.3,26.8,46.2,15.5
+    122,18.8,21.7,50.4,7
+    123,224,2.4,15.6,11.6
+    124,123.1,34.6,12.4,15.2
+    125,229.5,32.3,74.2,19.7
+    126,87.2,11.8,25.9,10.6
+    127,7.8,38.9,50.6,6.6
+    128,80.2,0,9.2,8.8
+    129,220.3,49,3.2,24.7
+    130,59.6,12,43.1,9.7
+    131,0.7,39.6,8.7,1.6
+    132,265.2,2.9,43,12.7
+    133,8.4,27.2,2.1,5.7
+    134,219.8,33.5,45.1,19.6
+    135,36.9,38.6,65.6,10.8
+    136,48.3,47,8.5,11.6
+    137,25.6,39,9.3,9.5
+    138,273.7,28.9,59.7,20.8
+    139,43,25.9,20.5,9.6
+    140,184.9,43.9,1.7,20.7
+    141,73.4,17,12.9,10.9
+    142,193.7,35.4,75.6,19.2
+    143,220.5,33.2,37.9,20.1
+    144,104.6,5.7,34.4,10.4
+    145,96.2,14.8,38.9,11.4
+    146,140.3,1.9,9,10.3
+    147,240.1,7.3,8.7,13.2
+    148,243.2,49,44.3,25.4
+    149,38,40.3,11.9,10.9
+    150,44.7,25.8,20.6,10.1
+    151,280.7,13.9,37,16.1
+    152,121,8.4,48.7,11.6
+    153,197.6,23.3,14.2,16.6
+    154,171.3,39.7,37.7,19
+    155,187.8,21.1,9.5,15.6
+    156,4.1,11.6,5.7,3.2
+    157,93.9,43.5,50.5,15.3
+    158,149.8,1.3,24.3,10.1
+    159,11.7,36.9,45.2,7.3
+    160,131.7,18.4,34.6,12.9
+    161,172.5,18.1,30.7,14.4
+    162,85.7,35.8,49.3,13.3
+    163,188.4,18.1,25.6,14.9
+    164,163.5,36.8,7.4,18
+    165,117.2,14.7,5.4,11.9
+    166,234.5,3.4,84.8,11.9
+    167,17.9,37.6,21.6,8
+    168,206.8,5.2,19.4,12.2
+    169,215.4,23.6,57.6,17.1
+    170,284.3,10.6,6.4,15
+    171,50,11.6,18.4,8.4
+    172,164.5,20.9,47.4,14.5
+    173,19.6,20.1,17,7.6
+    174,168.4,7.1,12.8,11.7
+    175,222.4,3.4,13.1,11.5
+    176,276.9,48.9,41.8,27
+    177,248.4,30.2,20.3,20.2
+    178,170.2,7.8,35.2,11.7
+    179,276.7,2.3,23.7,11.8
+    180,165.6,10,17.6,12.6
+    181,156.6,2.6,8.3,10.5
+    182,218.5,5.4,27.4,12.2
+    183,56.2,5.7,29.7,8.7
+    184,287.6,43,71.8,26.2
+    185,253.8,21.3,30,17.6
+    186,205,45.1,19.6,22.6
+    187,139.5,2.1,26.6,10.3
+    188,191.1,28.7,18.2,17.3
+    189,286,13.9,3.7,15.9
+    190,18.7,12.1,23.4,6.7
+    191,39.5,41.1,5.8,10.8
+    192,75.5,10.8,6,9.9
+    193,17.2,4.1,31.6,5.9
+    194,166.8,42,3.6,19.6
+    195,149.7,35.6,6,17.3
+    196,38.2,3.7,13.8,7.6
+    197,94.2,4.9,8.1,9.7
+    198,177,9.3,6.4,12.8
+    199,283.6,42,66.2,25.5
+    200,232.1,8.6,8.7,13.4
+    """
+    fname = io.StringIO(data_string)
+    x, y = np.genfromtxt(
+        fname, delimiter=",", unpack=True, usecols=(2, 4), dtype=object
+    )
+    x = x.astype(float)
+    y = y.astype(float)
+
+
+    def mse_loss(x, y, w, b):
+        return np.mean(np.square(y - (w * x + b)))
+
+
+    def create_plots():
+        plt.ioff()
+        fig = plt.figure(figsize=(16 / 9.0 * 4, 4 * 1), layout="constrained")
+        fig.suptitle("Gradient Descent")
+        ax0 = fig.add_subplot(1, 2, 1)
+        ax0.set_xlabel("Spending", fontweight="normal")
+        ax0.set_ylabel("Sales", fontweight="normal")
+        ax0.set_title("Linear Regression")
+
+        ax1 = fig.add_subplot(1, 2, 2, projection="3d")
+        ax1.set_xlabel("Slope, w")
+        ax1.set_ylabel("Intercept, b")
+        ax1.set_zlabel("Error")
+        ax1.set_title("Error")
+        ax1.view_init(15, -35)
+
+        return ax0, ax1
+
+
+    def generate_error_range(x, y, N, w_max, b_max):
+        w_range = np.arange(0, w_max, w_max / N)
+        b_range = np.arange(0, b_max, b_max / N)
+        w_range, b_range = np.meshgrid(w_range, b_range)
+        w_range = w_range.flatten()
+        b_range = b_range.flatten()
+
+        error_range = np.array([])
+        for i in range(min(w_range.shape[0], b_range.shape[0])):
+            error_range = np.append(
+                error_range, mse_loss(x, y, w_range[i], b_range[i])
+            )
+
+        return w_range, b_range, error_range
+
+
+    loss_dims = 20
+    w_max = 0.5
+    b_max = 15
+    w_range, b_range, error_range = generate_error_range(
+        x, y, loss_dims, w_max, b_max
+    )
+
+    w_slider = mo.ui.slider(0, 0.5, 0.05, value=0.45, show_value=True, label="$w$")
+    b_slider = mo.ui.slider(0, 15, 1, value=1, show_value=True, label="$b$")
+
+    mo.hstack([mo.vstack([w_slider]), mo.vstack([b_slider])])
+    return (
+        b_range,
+        b_slider,
+        create_plots,
+        error_range,
+        mse_loss,
+        np,
+        w_range,
+        w_slider,
+        x,
+        y,
+    )
+
+
+@app.cell(hide_code=True)
+def _(
+    b_range,
+    b_slider,
+    create_plots,
+    error_range,
+    mse_loss,
+    np,
+    w_range,
+    w_slider,
+    x,
+    y,
+):
+    w = w_slider.value
+    b = b_slider.value
+
+    ax0, ax1 = create_plots()
+    # Plot the error given the current slope and y-intercept
+    ax1.scatter(w_range, b_range, error_range, color="blue", alpha=0.05)
+    ax1.scatter([w], [b], [mse_loss(x, y, w, b)], color="red", s=100)
+
+    # Plot the linear regression lines
+    ax0.scatter(x, y, color="#1f77b4", marker="o", alpha=0.25)
+    X_plot = np.linspace(0, 50, 50)
+    ax0.plot(X_plot, X_plot * w + b, color="black")
+    return
+
+
+if __name__ == "__main__":
+    app.run()
